@@ -1,0 +1,282 @@
+
+import { Octokit } from "octokit";
+
+// GitHub Configuration
+const GITHUB_OWNER = import.meta.env.VITE_GITHUB_OWNER;
+const GITHUB_REPO = import.meta.env.VITE_GITHUB_REPO;
+const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN;
+const GITHUB_BRANCH = import.meta.env.VITE_GITHUB_BRANCH || 'main';
+
+const octokit = GITHUB_TOKEN ? new Octokit({ auth: GITHUB_TOKEN }) : null;
+
+// Cache for file SHAs to avoid extra API calls
+const shaCache = {};
+
+/**
+ * Validate if data is a proper array
+ */
+function validateData(data, entityName) {
+  if (!Array.isArray(data)) {
+    console.error(`Data for ${entityName} is not an array, resetting to empty array.`);
+    return [];
+  }
+  return data;
+}
+
+/**
+ * Get data from GitHub or localStorage fallback
+ */
+async function getStorage(entityName) {
+  let data = [];
+  if (octokit && GITHUB_OWNER && GITHUB_REPO) {
+    try {
+      const { data: githubData } = await octokit.rest.repos.getContent({
+        owner: GITHUB_OWNER,
+        repo: GITHUB_REPO,
+        path: `data/${entityName}.json`,
+        ref: GITHUB_BRANCH
+      });
+      
+      shaCache[entityName] = githubData.sha;
+      const content = atob(githubData.content);
+      try {
+        data = JSON.parse(content);
+      } catch (e) {
+        console.error(`JSON parse error for ${entityName} from GitHub:`, e);
+        data = [];
+      }
+    } catch (error) {
+      if (error.status === 404) {
+        data = []; // File doesn't exist yet
+      } else {
+        console.error(`GitHub fetch error for ${entityName}:`, error);
+        // Fallback to localStorage if GitHub fails
+        const localData = localStorage.getItem(`pricepilot_db_data/${entityName}.json`);
+        try {
+          data = localData ? JSON.parse(localData) : [];
+        } catch (e) {
+          data = [];
+        }
+      }
+    }
+  } else {
+    // Fallback to localStorage
+    const localData = localStorage.getItem(`pricepilot_db_data/${entityName}.json`);
+    try {
+      data = localData ? JSON.parse(localData) : [];
+    } catch (e) {
+      data = [];
+    }
+  }
+  
+  return validateData(data, entityName);
+}
+
+/**
+ * Save data to GitHub or localStorage fallback
+ */
+async function setStorage(entityName, data, message) {
+  const validatedData = validateData(data, entityName);
+  const jsonString = JSON.stringify(validatedData, null, 2);
+  
+  if (octokit && GITHUB_OWNER && GITHUB_REPO) {
+    try {
+      const content = btoa(jsonString);
+      
+      const response = await octokit.rest.repos.createOrUpdateFileContents({
+        owner: GITHUB_OWNER,
+        repo: GITHUB_REPO,
+        path: `data/${entityName}.json`,
+        message: message || `Update ${entityName}`,
+        content,
+        sha: shaCache[entityName],
+        branch: GITHUB_BRANCH
+      });
+      
+      // Update SHA cache for next operation
+      shaCache[entityName] = response.data.content.sha;
+    } catch (error) {
+      console.error(`GitHub save error for ${entityName}:`, error);
+    }
+  }
+  
+  // Always save to localStorage as a local cache/fallback
+  localStorage.setItem(`pricepilot_db_data/${entityName}.json`, jsonString);
+}
+
+/**
+ * Helper to get current user info from localStorage
+ */
+function getCurrentUser() {
+  try {
+    const userStr = localStorage.getItem('pricepilot_user');
+    if (!userStr) return { id: 'anonymous', name: 'Anonymous' };
+    const user = JSON.parse(userStr);
+    return {
+      id: user.id || 'anonymous',
+      name: user.full_name || user.name || 'Anonymous'
+    };
+  } catch (e) {
+    return { id: 'anonymous', name: 'Anonymous' };
+  }
+}
+
+const createEntityClient = (entityName) => ({
+  list: async (sort = null, limit = null) => {
+    let items = await getStorage(entityName);
+    if (sort) {
+      const isDesc = sort.startsWith('-');
+      const field = isDesc ? sort.substring(1) : sort;
+      items.sort((a, b) => {
+        if (a[field] < b[field]) return isDesc ? 1 : -1;
+        if (a[field] > b[field]) return isDesc ? -1 : 1;
+        return 0;
+      });
+    }
+    if (limit) items = items.slice(0, limit);
+    return items;
+  },
+  
+  filter: async (filters) => {
+    const items = await getStorage(entityName);
+    return items.filter(item => {
+      return Object.entries(filters).every(([key, value]) => String(item[key]) === String(value));
+    });
+  },
+  
+  get: async (id) => {
+    const data = await getStorage(entityName);
+    return data.find(item => String(item.id) === String(id));
+  },
+  
+  create: async (data, userId = null) => {
+    const items = await getStorage(entityName);
+    const user = getCurrentUser();
+    const finalUserId = userId || user.id;
+    const finalUserName = user.name;
+
+    const newItem = { 
+      ...data, 
+      id: Math.random().toString(36).substr(2, 9), 
+      created_date: new Date().toISOString(),
+      created_by: finalUserId,
+      created_by_name: finalUserName,
+      updated_date: new Date().toISOString(),
+      updated_by: finalUserId,
+      updated_by_name: finalUserName,
+      likes: [],
+      dislikes: [],
+      edit_history: []
+    };
+    items.push(newItem);
+    await setStorage(entityName, items, `Create ${entityName}: ${newItem.id}`);
+    return newItem;
+  },
+  
+  update: async (id, data, userId = null) => {
+    const items = await getStorage(entityName);
+    const user = getCurrentUser();
+    const index = items.findIndex(item => String(item.id) === String(id));
+    if (index !== -1) {
+      const oldItem = { ...items[index] };
+      const currentUserId = userId || user.id;
+      const currentUserName = user.name;
+      
+      const changes = [];
+      Object.keys(data).forEach(key => {
+        if (key !== 'edit_history' && JSON.stringify(oldItem[key]) !== JSON.stringify(data[key])) {
+          changes.push({
+            field: key,
+            old: oldItem[key],
+            new: data[key]
+          });
+        }
+      });
+      
+      if (changes.length > 0) {
+        const historyEntry = {
+          timestamp: new Date().toISOString(),
+          user_id: currentUserId,
+          user_name: currentUserName,
+          changes
+        };
+        
+        items[index] = { 
+          ...oldItem, 
+          ...data,
+          updated_date: new Date().toISOString(),
+          updated_by: currentUserId,
+          updated_by_name: currentUserName,
+          edit_history: [...(oldItem.edit_history || []), historyEntry]
+        };
+        
+        await setStorage(entityName, items, `Update ${entityName}: ${id}`);
+      }
+      return items[index];
+    }
+    return null;
+  },
+  
+  delete: async (id) => {
+    const items = await getStorage(entityName);
+    const filtered = items.filter(item => String(item.id) !== String(id));
+    await setStorage(entityName, filtered, `Delete ${entityName}: ${id}`);
+    return true;
+  },
+
+  toggleLike: async (id, userId) => {
+    const items = await getStorage(entityName);
+    const index = items.findIndex(item => String(item.id) === String(id));
+    if (index !== -1) {
+      const item = items[index];
+      if (!item.likes) item.likes = [];
+      if (!item.dislikes) item.dislikes = [];
+      
+      const likeIndex = item.likes.indexOf(userId);
+      if (likeIndex !== -1) {
+        item.likes.splice(likeIndex, 1);
+      } else {
+        item.likes.push(userId);
+        const dislikeIndex = item.dislikes.indexOf(userId);
+        if (dislikeIndex !== -1) item.dislikes.splice(dislikeIndex, 1);
+      }
+      
+      await setStorage(entityName, items, `Toggle Like ${entityName}: ${id}`);
+      return item;
+    }
+    return null;
+  },
+
+  toggleDislike: async (id, userId) => {
+    const items = await getStorage(entityName);
+    const index = items.findIndex(item => String(item.id) === String(id));
+    if (index !== -1) {
+      const item = items[index];
+      if (!item.likes) item.likes = [];
+      if (!item.dislikes) item.dislikes = [];
+      
+      const dislikeIndex = item.dislikes.indexOf(userId);
+      if (dislikeIndex !== -1) {
+        item.dislikes.splice(dislikeIndex, 1);
+      } else {
+        item.dislikes.push(userId);
+        const likeIndex = item.likes.indexOf(userId);
+        if (likeIndex !== -1) item.likes.splice(likeIndex, 1);
+      }
+      
+      await setStorage(entityName, items, `Toggle Dislike ${entityName}: ${id}`);
+      return item;
+    }
+    return null;
+  }
+});
+
+export const githubDbClient = {
+  entities: {
+    Product: createEntityClient('Product'),
+    PriceEntry: createEntityClient('PriceEntry'),
+    Store: createEntityClient('Store'),
+    ShoppingList: createEntityClient('ShoppingList'),
+    User: createEntityClient('User'),
+  }
+};
