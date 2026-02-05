@@ -4,7 +4,7 @@ import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/PricePilot/', // Correct base path for GitHub Pages repository
+  base: '/PricePilot2/', // Correct base path for GitHub Pages repository
   plugins: [
     react(),
   ],
