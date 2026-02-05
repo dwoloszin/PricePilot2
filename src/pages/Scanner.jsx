@@ -110,9 +110,7 @@ export default function Scanner() {
   });
 
   const handleBarcodeScan = async (barcode) => {
-    console.log('DEBUG: handleBarcodeScan started with barcode:', barcode);
     if (!barcode) {
-      console.log('DEBUG: Invalid barcode');
       toast.error("Invalid barcode");
       setScanning(true);
       return;
@@ -124,7 +122,6 @@ export default function Scanner() {
     setFetchedProductData(null);
     setScanning(false);
     setIsSearching(true);
-    console.log('DEBUG: States reset, scanning set to false, isSearching set to true');
     
     try {
       // 1. Check local DB FIRST (with timeout)
@@ -141,10 +138,8 @@ export default function Scanner() {
       }
 
       const localMatch = products.find(p => String(p.barcode) === String(barcode));
-      console.log('DEBUG: Local match result:', localMatch ? 'Found' : 'Not found');
       
       if (localMatch) {
-        console.log('DEBUG: Setting existing product and finishing search');
         setExistingProduct(localMatch);
         setIsSearching(false);
         return;
@@ -155,19 +150,15 @@ export default function Scanner() {
       const apiTimeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout
 
       try {
-        console.log('DEBUG: Fetching from external API...');
         const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`, {
           signal: controller.signal
         });
         clearTimeout(apiTimeoutId);
-        console.log('DEBUG: API response status:', response.status);
 
         if (response.ok) {
           const data = await response.json();
-          console.log('DEBUG: API data status:', data.status);
           if (data.status === 1 && data.product) {
             const p = data.product;
-            console.log('DEBUG: Product found in API:', p.product_name);
             setFetchedProductData({
               name: p.product_name || '',
               brand: p.brands || '',
@@ -175,18 +166,15 @@ export default function Scanner() {
               image_url: p.image_url || '',
               barcode: barcode
             });
-          } else {
-            console.log('DEBUG: Product not found in API');
           }
         }
       } catch (e) {
-        console.log('DEBUG: External API error or timeout:', e.message);
+        console.log('External API skipped or timed out');
       }
 
-      console.log('DEBUG: Setting isSearching to false');
       setIsSearching(false);
     } catch (error) {
-      console.error('DEBUG: Scan process error:', error);
+      console.error('Scan process error:', error);
       setIsSearching(false);
     }
   };
