@@ -75,12 +75,7 @@ export default function PriceEntryForm({ onSubmit, isLoading, existingStores = [
 
   const normalizeStoreName = (name) => {
     if (!name) return "";
-    return name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9\s]/g, "")
-      .trim();
+    return name.trim();
   };
 
   const handleSubmit = (e) => {
@@ -202,7 +197,7 @@ export default function PriceEntryForm({ onSubmit, isLoading, existingStores = [
                   if (store) {
                     setStoreName(store.name);
                     setStoreAddress(store.address || '');
-                    setStoreType(store.store_type || 'supermarket');
+                    setStoreType(store.type || store.store_type || 'supermarket');
                   }
                 }}>
                   <SelectTrigger className="bg-slate-50 border-slate-200 h-12 rounded-xl">

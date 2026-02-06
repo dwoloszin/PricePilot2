@@ -67,7 +67,7 @@ export default function PriceComparison() {
     stores.forEach(store => {
       const storePrices = priceEntries.filter(p => 
         p.store_id === store.id || 
-        (p.store_name && p.store_name.toLowerCase() === store.name.toLowerCase())
+        (p.store_name && p.store_name.trim().toLowerCase() === store.name.trim().toLowerCase())
       );
       
       stats[store.name.toLowerCase()] = {
@@ -83,9 +83,9 @@ export default function PriceComparison() {
 
     // 2. Then, add "temp" stores from price entries that don't have a matching entity
     uniqueStores.forEach(storeName => {
-      const lowerName = storeName.toLowerCase();
+      const lowerName = storeName.trim().toLowerCase();
       if (!stats[lowerName]) {
-        const storePrices = priceEntries.filter(p => p.store_name.toLowerCase() === lowerName);
+        const storePrices = priceEntries.filter(p => p.store_name.trim().toLowerCase() === lowerName);
         
         stats[lowerName] = {
           id: `temp-${storeName}`, 

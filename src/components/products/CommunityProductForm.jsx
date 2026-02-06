@@ -171,6 +171,7 @@ export default function CommunityProductForm({
   };
 
   const normalizeStoreName = (name) => {
+    if (!name) return "";
     return name.trim();
   };
 
@@ -385,7 +386,7 @@ export default function CommunityProductForm({
                     ...prev,
                     store_name: store.name,
                     store_address: store.address || '',
-                    store_type: store.type || 'supermarket'
+                    store_type: store.type || store.store_type || 'supermarket'
                   }));
                 }
               }}>
