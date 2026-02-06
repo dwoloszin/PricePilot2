@@ -1,6 +1,7 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { clearSharedDataCache } from './query-client.js';
 
 const AuthContext = createContext(null);
 
@@ -76,6 +77,13 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       localStorage.setItem('pricepilot_user', JSON.stringify(userData));
       setIsLoadingAuth(false);
+      
+      // Clear database cache to get fresh data from previous login
+      clearDatabaseCache();
+      
+      // Clear React Query cache to force fresh queries
+      clearSharedDataCache();
+      
       return userData;
     } catch (error) {
       console.error('Google login failed:', error);
@@ -85,10 +93,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /**
+   * Clear database cache from localStorage to prevent data leakage between users
+   * This ensures a new user doesn't see data from the previous user
+   */
+  const clearDatabaseCache = () => {
+    const entities = ['Product', 'PriceEntry', 'Store', 'ShoppingList', 'User'];
+    entities.forEach(entity => {
+      localStorage.removeItem(`pricepilot_db_data/${entity}.json`);
+    });
+  };
+
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
+    
+    // Clear user data from localStorage
     localStorage.removeItem('pricepilot_user');
+    
+    // Clear database cache (prevents data leakage between users)
+    clearDatabaseCache();
+    
+    // Clear React Query cache
+    clearSharedDataCache();
+    
     // Use hash navigation for GitHub Pages compatibility
     window.location.hash = '#/Login';
   };

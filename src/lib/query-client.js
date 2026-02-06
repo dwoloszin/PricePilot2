@@ -1,6 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
 
-
 export const queryClientInstance = new QueryClient({
 	defaultOptions: {
 		queries: {
@@ -9,3 +8,15 @@ export const queryClientInstance = new QueryClient({
 		},
 	},
 });
+
+/**
+ * Clear all shared data caches when user changes
+ * Called when logout or user switches
+ */
+export const clearSharedDataCache = () => {
+	queryClientInstance.invalidateQueries(['products']);
+	queryClientInstance.invalidateQueries(['stores']);
+	queryClientInstance.invalidateQueries(['all-prices']);
+	queryClientInstance.invalidateQueries(['recent-prices']);
+	queryClientInstance.invalidateQueries(['all-stores']);
+};

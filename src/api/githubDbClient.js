@@ -45,6 +45,8 @@ function validateData(data, entityName) {
  */
 async function getStorage(entityName) {
   let data = [];
+  let source = 'none';
+  
   if (octokit && GITHUB_OWNER && GITHUB_REPO) {
     try {
       const { data: githubData } = await octokit.rest.repos.getContent({
@@ -58,21 +60,26 @@ async function getStorage(entityName) {
       const content = atob(githubData.content);
       try {
         data = JSON.parse(content);
+        source = 'GitHub';
       } catch (e) {
         console.error(`JSON parse error for ${entityName} from GitHub:`, e);
         data = [];
+        source = 'GitHub (parse error)';
       }
     } catch (error) {
       if (error.status === 404) {
         data = []; // File doesn't exist yet
+        source = 'GitHub (404 - new file)';
       } else {
         console.error(`GitHub fetch error for ${entityName}:`, error);
         // Fallback to localStorage if GitHub fails
         const localData = localStorage.getItem(`pricepilot_db_data/${entityName}.json`);
         try {
           data = localData ? JSON.parse(localData) : [];
+          source = 'localStorage (GitHub fallback)';
         } catch (e) {
           data = [];
+          source = 'error (fallback failed)';
         }
       }
     }
@@ -81,9 +88,16 @@ async function getStorage(entityName) {
     const localData = localStorage.getItem(`pricepilot_db_data/${entityName}.json`);
     try {
       data = localData ? JSON.parse(localData) : [];
+      source = 'localStorage (no GitHub config)';
     } catch (e) {
       data = [];
+      source = 'error (no GitHub)';
     }
+  }
+  
+  // DEBUG: Log data source
+  if (data.length > 0 || source.includes('error') || source.includes('404')) {
+    console.log(`[DB] ${entityName}: ${data.length} items from ${source}`);
   }
   
   return validateData(data, entityName);
@@ -112,13 +126,20 @@ async function setStorage(entityName, data, message) {
       
       // Update SHA cache for next operation
       shaCache[entityName] = response.data.content.sha;
+      
+      // DEBUG: Log save
+      console.log(`[DB] ${entityName}: Saved ${validatedData.length} items to GitHub`);
     } catch (error) {
       console.error(`GitHub save error for ${entityName}:`, error);
+      // Always save to localStorage as fallback
+      localStorage.setItem(`pricepilot_db_data/${entityName}.json`, jsonString);
+      console.log(`[DB] ${entityName}: Saved ${validatedData.length} items to localStorage (GitHub failed)`);
     }
+  } else {
+    // No GitHub configured, save only to localStorage
+    localStorage.setItem(`pricepilot_db_data/${entityName}.json`, jsonString);
+    console.log(`[DB] ${entityName}: Saved ${validatedData.length} items to localStorage (no GitHub)`);
   }
-  
-  // Always save to localStorage as a local cache/fallback
-  localStorage.setItem(`pricepilot_db_data/${entityName}.json`, jsonString);
 }
 
 /**
