@@ -10,7 +10,8 @@ import {
   BarChart3, 
   User,
   Menu,
-  X
+  X,
+  Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -50,6 +51,7 @@ export default function Layout({ children, currentPageName }) {
   const navItems = [
     { name: 'Home', page: 'Home', icon: Home },
     { name: 'Scan', page: 'Scanner', icon: ScanLine },
+    { name: 'Fast List', page: 'FastList', icon: Zap },
     { name: 'Lists', page: 'ShoppingLists', icon: ShoppingCart },
     { name: 'Compare', page: 'PriceComparison', icon: BarChart3 },
     { name: 'Profile', page: 'Profile', icon: User },

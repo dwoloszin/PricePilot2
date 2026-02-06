@@ -9,6 +9,7 @@ import ShoppingListDetail from './pages/ShoppingListDetail';
 import Login from './pages/Login';
 import UsernameSetup from './pages/UsernameSetup';
 import StoreDetail from './pages/StoreDetail';
+import FastList from './pages/FastList';
 import __Layout from './Layout.jsx';
 
 export const PAGES = {
@@ -23,6 +24,7 @@ export const PAGES = {
     "Login": Login,
     "UsernameSetup": UsernameSetup,
     "StoreDetail": StoreDetail,
+    "FastList": FastList,
 }
 
 export const pagesConfig = {

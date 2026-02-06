@@ -120,7 +120,11 @@ export default function ShoppingLists() {
               estimatedTotal={getEstimatedTotal(list)}
               onClick={() => {
                 // Use hash-based navigation for GitHub Pages
-                window.location.hash = `#/ShoppingListDetail?id=${list.id}`;
+                if (list.is_fast_list) {
+                  window.location.hash = `#/FastList`;
+                } else {
+                  window.location.hash = `#/ShoppingListDetail?id=${list.id}`;
+                }
               }}
             />
           ))}

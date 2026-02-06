@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingCart, Package, ChevronRight, DollarSign, Target } from 'lucide-react';
+import { ShoppingCart, Package, ChevronRight, DollarSign, Target, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
@@ -24,14 +24,20 @@ export default function ShoppingListCard({ list, estimatedTotal, onClick }) {
         <div className="flex items-start gap-4">
           <div className={cn(
             "w-12 h-12 rounded-xl flex items-center justify-center",
-            list.is_active 
-              ? "bg-gradient-to-br from-emerald-500 to-teal-500" 
-              : "bg-slate-100"
+            list.is_fast_list
+              ? "bg-amber-500 shadow-lg shadow-amber-500/20"
+              : list.is_active 
+                ? "bg-gradient-to-br from-emerald-500 to-teal-500" 
+                : "bg-slate-100"
           )}>
-            <ShoppingCart className={cn(
-              "w-6 h-6",
-              list.is_active ? "text-white" : "text-slate-400"
-            )} />
+            {list.is_fast_list ? (
+              <Zap className="w-6 h-6 text-white" />
+            ) : (
+              <ShoppingCart className={cn(
+                "w-6 h-6",
+                list.is_active ? "text-white" : "text-slate-400"
+              )} />
+            )}
           </div>
           <div>
             <div className="flex items-center gap-2">
