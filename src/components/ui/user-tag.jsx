@@ -3,6 +3,7 @@ import { User, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
+import { Link } from 'react-router-dom';
 
 export function UserTag({ 
   userId, 
@@ -87,7 +88,13 @@ export function UserTag({
       )}
     >
       <User className={iconSizes[size]} />
-      <span className="font-medium">{resolvedName || userName || userId || 'Anonymous'}</span>
+      {userId ? (
+        <Link to={`/User?id=${encodeURIComponent(userId)}`} className="font-medium hover:underline">
+          {resolvedName || userName || userId || 'Anonymous'}
+        </Link>
+      ) : (
+        <span className="font-medium">{resolvedName || userName || userId || 'Anonymous'}</span>
+      )}
       {timestamp && (
         <>
           <span className="text-slate-400">•</span>

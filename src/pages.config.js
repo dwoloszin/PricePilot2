@@ -8,6 +8,7 @@ import Home from './pages/Home';
 import ShoppingListDetail from './pages/ShoppingListDetail';
 import Login from './pages/Login';
 import UsernameSetup from './pages/UsernameSetup';
+import UserPage from './pages/User';
 import StoreDetail from './pages/StoreDetail';
 import FastList from './pages/FastList';
 import __Layout from './Layout.jsx';
@@ -17,6 +18,7 @@ export const PAGES = {
     "ProductDetail": ProductDetail,
     "Products": Products,
     "Profile": Profile,
+    "User": UserPage,
     "ShoppingLists": ShoppingLists,
     "Scanner": Scanner,
     "Home": Home,
