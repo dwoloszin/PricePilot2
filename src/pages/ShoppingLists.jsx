@@ -34,8 +34,9 @@ export default function ShoppingLists() {
   const { data: lists = [], isLoading } = useQuery({
     queryKey: ['shopping-lists', user?.id],
     queryFn: async () => {
-      const allLists = await base44.entities.ShoppingList.list('-created_date');
-      return allLists.filter(l => String(l.user_id) === String(user?.id));
+      // Now the backend handles the filtering, but we can keep client-side as backup
+      const allLists = await base44.entities.ShoppingList.list('-created_date', null, user?.id);
+      return allLists;
     },
     enabled: !!user?.id
   });

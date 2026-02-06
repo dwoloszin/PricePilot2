@@ -1,6 +1,23 @@
 
 import { Octokit } from "octokit";
 
+/**
+ * DATA SHARING ARCHITECTURE
+ * 
+ * SHARED ENTITIES (All Users See All Items):
+ * - Product: Shared across all users, created_by tracks originator
+ * - Store: Shared across all users, created_by tracks originator
+ * - PriceEntry: Shared across all users (contributes to shared pricing data), created_by tracks originator
+ * 
+ * PRIVATE ENTITIES (Per-User Only):
+ * - ShoppingList: Each user only sees their own lists (filtered by user_id)
+ * 
+ * SHARED FEATURES (Cross-User):
+ * - likes[] array: Each item contains user IDs who liked it (shared across users)
+ * - dislikes[] array: Each item contains user IDs who disliked it (shared across users)
+ * - edit_history[]: Tracks all edits by any user on shared items
+ */
+
 // GitHub Configuration
 const GITHUB_OWNER = import.meta.env.VITE_GITHUB_OWNER;
 const GITHUB_REPO = import.meta.env.VITE_GITHUB_REPO;
@@ -121,9 +138,28 @@ function getCurrentUser() {
   }
 }
 
+/**
+ * Entities that are private per user
+ * These should be filtered by user_id when listing
+ */
+const PRIVATE_ENTITIES = ['ShoppingList'];
+
+/**
+ * Entities that are shared across all users
+ * These should never be filtered by user
+ */
+const SHARED_ENTITIES = ['Product', 'PriceEntry', 'Store', 'User'];
+
 const createEntityClient = (entityName) => ({
-  list: async (sort = null, limit = null) => {
+  list: async (sort = null, limit = null, userId = null) => {
     let items = await getStorage(entityName);
+    
+    // Apply user filtering ONLY for private entities
+    if (PRIVATE_ENTITIES.includes(entityName) && userId) {
+      items = items.filter(item => String(item.user_id) === String(userId));
+    }
+    
+    // Apply sorting
     if (sort) {
       const isDesc = sort.startsWith('-');
       const field = isDesc ? sort.substring(1) : sort;
