@@ -1,13 +1,17 @@
 
 import { githubDbClient } from './githubDbClient';
+import { firestoreDbClient } from './firestoreDbClient';
 
 /**
  * Base44 Client implementation using GitHub as a backend.
  * This client provides a similar interface to the original base44 client
  * but persists data to GitHub JSON files.
  */
+// Prefer Firestore when available, otherwise fall back to GitHub client
+const primaryClient = (firestoreDbClient && firestoreDbClient.entities) ? firestoreDbClient : githubDbClient;
+
 export const base44 = {
-  ...githubDbClient,
+  ...primaryClient,
   
   auth: {
     me: async () => {
