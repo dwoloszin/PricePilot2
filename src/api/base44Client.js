@@ -10,10 +10,11 @@ import { firestoreDbClient } from './firestoreDbClient';
 // Prefer Firestore when available, otherwise fall back to GitHub client
 const primaryClient = (firestoreDbClient && firestoreDbClient.entities) ? firestoreDbClient : githubDbClient;
 
-export const base44 = {
-  ...primaryClient,
-  
-  auth: {
+export const base44 = (() => {
+  const base = {
+    ...primaryClient,
+
+    auth: {
     me: async () => {
       const userStr = localStorage.getItem('pricepilot_user');
       if (!userStr) return { id: 'anonymous', full_name: 'Anonymous', name: 'Anonymous' };
@@ -48,7 +49,7 @@ export const base44 = {
     }
   },
 
-  appLogs: {
+    appLogs: {
     logUserInApp: async (pageName) => {
       console.log(`Page view: ${pageName}`);
     }
@@ -128,4 +129,31 @@ export const base44 = {
       }
     }
   }
-};
+  };
+
+  // Wrap entity create/update calls so they receive the full current user object
+  if (base.entities) {
+    Object.keys(base.entities).forEach((name) => {
+      const ent = base.entities[name];
+      if (!ent) return;
+      if (typeof ent.create === 'function') {
+        const origCreate = ent.create.bind(ent);
+        ent.create = async (data, userArg = null) => {
+          const me = await base.auth.me();
+          const user = userArg || me;
+          return origCreate(data, user);
+        };
+      }
+      if (typeof ent.update === 'function') {
+        const origUpdate = ent.update.bind(ent);
+        ent.update = async (id, data, userArg = null) => {
+          const me = await base.auth.me();
+          const user = userArg || me;
+          return origUpdate(id, data, user);
+        };
+      }
+    });
+  }
+
+  return base;
+})();

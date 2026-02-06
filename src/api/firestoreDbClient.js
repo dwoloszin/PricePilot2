@@ -75,20 +75,33 @@ const createEntityClient = (entityName) => ({
     }
   },
 
-  create: async (data, userId = null) => {
+  create: async (data, user = null) => {
     try {
+      // user may be a string userId or an object { id, username, full_name }
+      const userId = user && typeof user === 'string' ? user : (user && user.id) || data.created_by || null;
+      const userName = user && typeof user === 'object' ? (user.username || user.full_name || user.name) : (data.created_by_name || null);
+      const now = new Date().toISOString();
+      const entry = {
+        action: 'create',
+        date: now,
+        by: userId,
+        by_name: userName,
+        data: data
+      };
+
       const payload = {
         ...data,
-        created_date: new Date().toISOString(),
-        created_by: userId || data.created_by || null,
-        created_by_name: data.created_by_name || null,
-        updated_date: new Date().toISOString(),
-        updated_by: userId || data.updated_by || null,
-        updated_by_name: data.updated_by_name || null,
+        created_date: now,
+        created_by: userId,
+        created_by_name: userName,
+        updated_date: now,
+        updated_by: userId,
+        updated_by_name: userName,
         likes: data.likes || [],
         dislikes: data.dislikes || [],
-        edit_history: data.edit_history || []
+        edit_history: (data.edit_history || []).concat([entry])
       };
+
       const ref = await addDoc(collection(db, entityName), payload);
       return { id: ref.id, ...payload };
     } catch (e) {
@@ -97,17 +110,42 @@ const createEntityClient = (entityName) => ({
     }
   },
 
-  update: async (id, data, userId = null) => {
+  update: async (id, data, user = null) => {
     try {
       const ref = doc(db, entityName, id);
       const now = new Date().toISOString();
+
+      // Resolve user id and name
+      const userId = user && typeof user === 'string' ? user : (user && user.id) || data.updated_by || null;
+      const userName = user && typeof user === 'object' ? (user.username || user.full_name || user.name) : (data.updated_by_name || null);
+
+      // Read existing document to create a history entry
+      const existingSnap = await getDoc(ref);
+      const existing = existingSnap.exists() ? existingSnap.data() : {};
+      const changes = {};
+      Object.keys(data).forEach(k => {
+        const before = existing[k] === undefined ? null : existing[k];
+        const after = data[k];
+        if (JSON.stringify(before) !== JSON.stringify(after)) changes[k] = { before, after };
+      });
+
+      const historyEntry = {
+        action: 'update',
+        date: now,
+        by: userId,
+        by_name: userName,
+        changes
+      };
+
       const updates = {
         ...data,
         updated_date: now,
-        updated_by: userId || data.updated_by || null,
-        updated_by_name: data.updated_by_name || null,
+        updated_by: userId,
+        updated_by_name: userName,
       };
-      await updateDoc(ref, updates);
+
+      // Apply update and push history entry
+      await updateDoc(ref, { ...updates, edit_history: arrayUnion(historyEntry) });
       const updated = await getDoc(ref);
       return { id: updated.id, ...updated.data() };
     } catch (e) {
