@@ -6,15 +6,15 @@ import { getFirestore, serverTimestamp } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
-// Your web app's Firebase configuration (provided)
+// Your web app's Firebase configuration (from environment variables)
 const firebaseConfig = {
-  apiKey: "AIzaSyC507icVjcQPUmmozoYqV5DR2c5NwHUYqs",
-  authDomain: "pricepilot-d2d1b.firebaseapp.com",
-  projectId: "pricepilot-d2d1b",
-  storageBucket: "pricepilot-d2d1b.appspot.com",
-  messagingSenderId: "1005347249880",
-  appId: "1:1005347249880:web:77543c81d68799c2c201ad",
-  measurementId: "G-1EVS774YWY"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
