@@ -13,8 +13,9 @@ export function EditHistory({ history = [], className }) {
     return null;
   }
 
-  const formatTimestamp = (ts) => {
-    if (!ts) return '';
+  const formatTimestamp = (tsOrDate) => {
+    if (!tsOrDate) return '';
+    const ts = tsOrDate.date || tsOrDate.timestamp || tsOrDate;
     const date = new Date(ts);
     return date.toLocaleString();
   };
@@ -58,7 +59,7 @@ export function EditHistory({ history = [], className }) {
                   <div className="flex items-center gap-2 text-sm">
                     <User className="w-3 h-3 text-slate-500" />
                     <span className="font-medium text-slate-700">
-                      {entry.user_name || entry.user_id || 'Anonymous'}
+                      {entry.by_name || entry.user_name || entry.by || entry.user_id || 'Anonymous'}
                     </span>
                     <span className="text-slate-400">•</span>
                     <Clock className="w-3 h-3 text-slate-500" />
@@ -69,30 +70,59 @@ export function EditHistory({ history = [], className }) {
 
                   {entry.changes && Object.keys(entry.changes).length > 0 && (
                     <div className="space-y-1.5">
-                      {Object.entries(entry.changes).map(([field, change]) => (
-                        <div
-                          key={field}
-                          className="bg-slate-50 rounded-lg p-2 text-xs"
-                        >
-                          <div className="font-medium text-slate-700 mb-1 capitalize">
-                            {field.replace(/_/g, ' ')}
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <span className="text-slate-500">Old:</span>
-                              <div className="text-red-600 font-mono break-all">
-                                {formatValue(change.old)}
+                      {Array.isArray(entry.changes)
+                        ? entry.changes.map((change, idx) => {
+                            const field = change.field || `change_${idx}`;
+                            const oldVal = change.old !== undefined ? change.old : change.before;
+                            const newVal = change.new !== undefined ? change.new : change.after;
+                            return (
+                              <div key={idx} className="bg-slate-50 rounded-lg p-2 text-xs">
+                                <div className="font-medium text-slate-700 mb-1 capitalize">
+                                  {String(field).replace(/_/g, ' ')}
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <span className="text-slate-500">Old:</span>
+                                    <div className="text-red-600 font-mono break-all">
+                                      {formatValue(oldVal)}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <span className="text-slate-500">New:</span>
+                                    <div className="text-emerald-600 font-mono break-all">
+                                      {formatValue(newVal)}
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                            <div>
-                              <span className="text-slate-500">New:</span>
-                              <div className="text-emerald-600 font-mono break-all">
-                                {formatValue(change.new)}
+                            );
+                          })
+                        : Object.entries(entry.changes).map(([field, change]) => {
+                            // support both {old,new} and {before,after} shapes
+                            const oldVal = change.old !== undefined ? change.old : change.before;
+                            const newVal = change.new !== undefined ? change.new : change.after;
+                            return (
+                              <div key={field} className="bg-slate-50 rounded-lg p-2 text-xs">
+                                <div className="font-medium text-slate-700 mb-1 capitalize">
+                                  {field.replace(/_/g, ' ')}
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <span className="text-slate-500">Old:</span>
+                                    <div className="text-red-600 font-mono break-all">
+                                      {formatValue(oldVal)}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <span className="text-slate-500">New:</span>
+                                    <div className="text-emerald-600 font-mono break-all">
+                                      {formatValue(newVal)}
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                            );
+                          })}
                     </div>
                   )}
                 </div>

@@ -62,9 +62,18 @@ export default function StoreDetail() {
   const { data: priceEntries = [], isLoading: pricesLoading } = useQuery({
     queryKey: ['store-prices', store?.name],
     queryFn: async () => {
-      if (!store?.name) return [];
+      if (!store) return [];
       const allPrices = await base44.entities.PriceEntry.list();
-      return allPrices.filter(p => p.store_name === store.name);
+      // Prefer matching by store_id when available, fall back to store_name (case-insensitive)
+      return allPrices.filter(p => {
+        if (p.store_id && store.id) {
+          if (String(p.store_id) === String(store.id)) return true;
+        }
+        if (p.store_name && store.name) {
+          return String(p.store_name).trim().toLowerCase() === String(store.name).trim().toLowerCase();
+        }
+        return false;
+      });
     },
     enabled: !!store?.name
   });

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { User, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { base44 } from '@/api/base44Client';
 
 export function UserTag({ 
   userId, 
@@ -11,6 +12,25 @@ export function UserTag({
   size = 'default',
   className 
 }) {
+  const [resolvedName, setResolvedName] = useState(userName || null);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!resolvedName && userId) {
+      // try to fetch user record for nickname
+      (async () => {
+        try {
+          const u = await base44.entities.User.get(String(userId));
+          if (mounted && u) {
+            setResolvedName(u.username || u.full_name || u.name || null);
+          }
+        } catch (e) {
+          // ignore
+        }
+      })();
+    }
+    return () => { mounted = false; };
+  }, [userId, resolvedName]);
   const sizeClasses = {
     small: 'text-xs px-2 py-0.5',
     default: 'text-sm px-2.5 py-1',
@@ -49,7 +69,7 @@ export function UserTag({
       )}
     >
       <User className={iconSizes[size]} />
-      <span className="font-medium">{userName || userId || 'Anonymous'}</span>
+      <span className="font-medium">{resolvedName || userName || userId || 'Anonymous'}</span>
       {timestamp && (
         <>
           <span className="text-slate-400">•</span>
