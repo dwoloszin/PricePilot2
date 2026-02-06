@@ -17,17 +17,35 @@ export function UserTag({
   useEffect(() => {
     let mounted = true;
     if (!resolvedName && userId) {
-      // try to fetch user record for nickname
-      (async () => {
+      // First try local cache stored in localStorage (pricepilot_all_users)
+      const tryLocal = () => {
         try {
-          const u = await base44.entities.User.get(String(userId));
-          if (mounted && u) {
-            setResolvedName(u.username || u.full_name || u.name || null);
-          }
+          const all = JSON.parse(localStorage.getItem('pricepilot_all_users') || '[]');
+          const found = all.find(u => String(u.id) === String(userId));
+          if (found && found.username) return `@${found.username}`;
         } catch (e) {
           // ignore
         }
-      })();
+        return null;
+      };
+
+      const local = tryLocal();
+      if (local) {
+        setResolvedName(local);
+      } else {
+        // fallback to fetching user record for nickname
+        (async () => {
+          try {
+            const u = await base44.entities.User.get(String(userId));
+            if (mounted && u) {
+              const uname = u.username || u.full_name || u.name || null;
+              setResolvedName(uname ? `@${uname}` : null);
+            }
+          } catch (e) {
+            // ignore
+          }
+        })();
+      }
     }
     return () => { mounted = false; };
   }, [userId, resolvedName]);

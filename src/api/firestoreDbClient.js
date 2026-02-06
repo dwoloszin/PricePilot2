@@ -146,6 +146,33 @@ const createEntityClient = (entityName) => ({
 
       // Apply update and push history entry
       await updateDoc(ref, { ...updates, edit_history: arrayUnion(historyEntry) });
+
+      // If a Store's name changed, try to sync related PriceEntry documents so
+      // they continue to appear under the updated store card. We update any
+      // PriceEntry whose `store_name` case-insensitively matched the previous
+      // store name to set `store_id` and the new `store_name`.
+      try {
+        if (entityName === 'Store' && changes && changes.name) {
+          const prevName = existing.name || '';
+          const newName = data.name;
+          if (prevName && newName && String(prevName).trim().toLowerCase() !== String(newName).trim().toLowerCase()) {
+            const priceCol = collection(db, 'PriceEntry');
+            const allPrices = await getDocs(priceCol);
+            const toUpdates = [];
+            allPrices.docs.forEach(pdoc => {
+              const pdata = pdoc.data();
+              if (pdata && pdata.store_name && String(pdata.store_name).trim().toLowerCase() === String(prevName).trim().toLowerCase()) {
+                toUpdates.push({ id: pdoc.id, ref: doc(db, 'PriceEntry', pdoc.id) });
+              }
+            });
+            for (const u of toUpdates) {
+              await updateDoc(u.ref, { store_id: id, store_name: newName });
+            }
+          }
+        }
+      } catch (syncErr) {
+        console.error('Failed to sync PriceEntry store references after store rename', syncErr);
+      }
       const updated = await getDoc(ref);
       return { id: updated.id, ...updated.data() };
     } catch (e) {
