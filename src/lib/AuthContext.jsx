@@ -8,7 +8,7 @@ import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 const AuthContext = createContext(null);
 
 // Your Google Client ID
-const GOOGLE_CLIENT_ID = "209508189280-7su563c2ofm82jadt9t965rbeh72dg2h.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "1005347249880-tvkjo9o2vhu49sc8ari3oj24krfh4oio.apps.googleusercontent.com";
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
