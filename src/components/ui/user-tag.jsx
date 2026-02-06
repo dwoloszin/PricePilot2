@@ -78,6 +78,32 @@ export function UserTag({
     return date.toLocaleDateString();
   };
 
+  // If we have a userId, make the entire badge clickable (bigger target)
+  if (userId) {
+    return (
+      <Link to={`/User?id=${encodeURIComponent(userId)}`} className="no-underline">
+        <Badge
+          variant="secondary"
+          className={cn(
+            'flex items-center gap-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200',
+            sizeClasses[size],
+            className
+          )}
+        >
+          <User className={iconSizes[size]} />
+          <span className="font-medium">{resolvedName || userName || userId || 'Anonymous'}</span>
+          {timestamp && (
+            <>
+              <span className="text-slate-400">•</span>
+              <Clock className={iconSizes[size]} />
+              <span>{formatTimestamp(timestamp)}</span>
+            </>
+          )}
+        </Badge>
+      </Link>
+    );
+  }
+
   return (
     <Badge 
       variant="secondary" 
@@ -88,13 +114,7 @@ export function UserTag({
       )}
     >
       <User className={iconSizes[size]} />
-      {userId ? (
-        <Link to={`/User?id=${encodeURIComponent(userId)}`} className="font-medium hover:underline">
-          {resolvedName || userName || userId || 'Anonymous'}
-        </Link>
-      ) : (
-        <span className="font-medium">{resolvedName || userName || userId || 'Anonymous'}</span>
-      )}
+      <span className="font-medium">{resolvedName || userName || userId || 'Anonymous'}</span>
       {timestamp && (
         <>
           <span className="text-slate-400">•</span>

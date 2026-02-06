@@ -10,6 +10,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 
 function getUserIdFromSearch() {
+  // Support both normal and hash routing (HashRouter puts query into the hash)
+  const hash = window.location.hash;
+  const hashQuery = hash && hash.includes('?') ? new URLSearchParams(hash.split('?')[1]) : null;
+  if (hashQuery) return hashQuery.get('id');
   return new URLSearchParams(window.location.search).get('id');
 }
 
