@@ -61,6 +61,10 @@ export default function ShoppingLists() {
   const getEstimatedTotal = (list) => {
     if (!list.items || list.items.length === 0) return 0;
     
+    if (list.is_fast_list) {
+      return list.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    }
+    
     let total = 0;
     list.items.forEach(item => {
       const productPrices = priceEntries.filter(p => String(p.product_id) === String(item.product_id));
@@ -113,7 +117,7 @@ export default function ShoppingLists() {
         </div>
       ) : lists.length > 0 ? (
         <div className="space-y-3">
-          {lists.map(list => (
+          {[...lists].sort((a, b) => (b.is_fast_list ? 1 : 0) - (a.is_fast_list ? 1 : 0)).map(list => (
             <ShoppingListCard 
               key={list.id}
               list={list}

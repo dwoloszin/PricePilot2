@@ -336,14 +336,15 @@ export default function FastList() {
 
       {/* Input Modal */}
       <Dialog open={showInputModal} onOpenChange={setShowInputModal}>
-        <DialogContent className="sm:max-w-[425px] rounded-3xl">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[425px] rounded-3xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
+          <DialogHeader className="p-6 pb-2">
             <DialogTitle className="flex items-center gap-2">
               <Zap className="w-5 h-5 text-amber-500" />
               Item Details
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-6 py-4">
+          
+          <div className="flex-1 overflow-y-auto px-6 py-2 space-y-6">
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
               <p className="text-xs text-slate-400 font-medium uppercase mb-1">Scanned Barcode</p>
               <p className="font-mono font-bold text-slate-700">{currentBarcode}</p>
@@ -355,6 +356,7 @@ export default function FastList() {
                 <Input
                   id="price"
                   type="number"
+                  inputMode="decimal"
                   step="0.01"
                   ref={priceInputRef}
                   value={itemValue}
@@ -368,6 +370,7 @@ export default function FastList() {
                 <Input
                   id="quantity"
                   type="number"
+                  inputMode="numeric"
                   value={itemQuantity}
                   onChange={(e) => setItemQuantity(e.target.value)}
                   placeholder="1"
@@ -375,8 +378,11 @@ export default function FastList() {
                 />
               </div>
             </div>
+            {/* Spacer to ensure content is visible above keyboard on some devices */}
+            <div className="h-4" />
           </div>
-          <DialogFooter className="flex-row gap-3">
+
+          <DialogFooter className="p-6 pt-2 flex-row gap-3 bg-white border-t border-slate-50">
             <Button 
               variant="outline" 
               onClick={() => setShowInputModal(false)}
