@@ -2,8 +2,9 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { clearSharedDataCache } from './query-client.js';
-import { auth } from '../api/firebaseClient';
+import { auth, db, serverTimestamp } from '../api/firebaseClient';
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
+import { setDoc, doc } from 'firebase/firestore';
 
 const AuthContext = createContext(null);
 
@@ -84,6 +85,27 @@ export const AuthProvider = ({ children }) => {
       try {
         const firebaseCred = GoogleAuthProvider.credential(credentialResponse.credential);
         await signInWithCredential(auth, firebaseCred);
+        
+        // Create or update User record in Firestore so user profiles are accessible
+        try {
+          const userDocRef = doc(db, 'User', googleUser.sub);
+          const userPayload = {
+            id: googleUser.sub,
+            full_name: googleUser.name,
+            email: googleUser.email,
+            picture: googleUser.picture,
+            provider: 'google',
+            username: existingUserRecord ? existingUserRecord.username : null,
+            created_date: new Date().toISOString(),
+            likes: [],
+            dislikes: [],
+            likes_names: [],
+            dislikes_names: [],
+          };
+          await setDoc(userDocRef, userPayload, { merge: true });
+        } catch (fsErr) {
+          console.warn('Failed to create/update User in Firestore:', fsErr);
+        }
       } catch (fbErr) {
         console.warn('Firebase sign-in failed:', fbErr);
       }
