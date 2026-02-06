@@ -26,6 +26,34 @@ export function EditHistory({ history = [], className }) {
     return String(value);
   };
 
+  const resolveStoredUsername = (id) => {
+    try {
+      const all = JSON.parse(localStorage.getItem('pricepilot_all_users') || '[]');
+      const found = all.find(u => String(u.id) === String(id));
+      if (found && found.username) return `@${found.username}`;
+    } catch (e) {
+      // ignore
+    }
+    return null;
+  };
+
+  const displayName = (entry) => {
+    if (!entry) return 'Anonymous';
+    if (entry.by_name) return entry.by_name;
+    if (entry.user_name) return entry.user_name;
+    if (entry.by && typeof entry.by === 'string') {
+      const resolved = resolveStoredUsername(entry.by);
+      if (resolved) return resolved;
+      return entry.by;
+    }
+    if (entry.user_id) {
+      const resolved = resolveStoredUsername(entry.user_id);
+      if (resolved) return resolved;
+      return entry.user_id;
+    }
+    return 'Anonymous';
+  };
+
   return (
     <Card className={cn('border-slate-200', className)}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -59,7 +87,7 @@ export function EditHistory({ history = [], className }) {
                   <div className="flex items-center gap-2 text-sm">
                     <User className="w-3 h-3 text-slate-500" />
                     <span className="font-medium text-slate-700">
-                      {entry.by_name || entry.user_name || entry.by || entry.user_id || 'Anonymous'}
+                      {displayName(entry)}
                     </span>
                     <span className="text-slate-400">•</span>
                     <Clock className="w-3 h-3 text-slate-500" />
